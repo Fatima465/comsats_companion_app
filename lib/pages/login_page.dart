@@ -74,7 +74,7 @@ class _LoginpageState extends State<Loginpage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Image.asset('assets/app_icon.png', height: 100), // Placeholder for your icon
+              Image.asset('assets/images/logo.png', height: 100), // Placeholder for your icon
               const SizedBox(height: 10),
               const Text(
                 "CUI Companion",

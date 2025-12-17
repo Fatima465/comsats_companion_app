@@ -22,6 +22,7 @@ class MyApp extends StatelessWidget {
  Widget build(BuildContext context) {
  // We will use the theme from your UI images (dark mode with blue accents)
  return MaterialApp(
+ debugShowCheckedModeBanner: false, // <--- ADD THIS LINE
  title: 'CUI Companion',
  theme: ThemeData(
  brightness: Brightness.dark,

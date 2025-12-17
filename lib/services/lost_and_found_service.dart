@@ -50,12 +50,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class LostFoundService {
   final _supabase = Supabase.instance.client;
   static const String kBucket = 'lost_and_found_images';
-  static const String kTable = 'lost_and_found'; // Use a clear table name
+  static const String kTable = 'lost_and_found';
 
-  // --- UPDATED METHOD FOR WEB/MOBILE COMPATIBLE UPLOAD ---
+  // Compatible with both Mobile and Web
   Future<void> createPost({
-    required List<int> fileData, // <--- Accepts file bytes
-    required String fileName, // <--- Accepts file name
+    required List<int> fileData,
+    required String fileName,
     required String userId,
     required String postType,
     required String title,
@@ -64,61 +64,54 @@ class LostFoundService {
     String? contactInfo,
   }) async {
     final fileBytes = Uint8List.fromList(fileData);
+    final storagePath = '$userId/${DateTime.now().millisecondsSinceEpoch}_$fileName';
 
-    // 1. Generate unique file path/name
-    final storagePath =
-        '$userId/${DateTime.now().millisecondsSinceEpoch}_$fileName';
-
-    // 2. Upload image to Storage Bucket using uploadBinary
-    await _supabase.storage
-        .from(kBucket)
-        .uploadBinary(
+    // 1. Upload Image
+    await _supabase.storage.from(kBucket).uploadBinary(
           storagePath,
           fileBytes,
-          fileOptions: const FileOptions(
-            contentType: 'image/jpeg',
-          ), // Adjust based on picker
+          fileOptions: const FileOptions(contentType: 'image/jpeg'),
         );
 
-    // 3. Get public URL for the image
     final imageUrl = _supabase.storage.from(kBucket).getPublicUrl(storagePath);
 
-    // 4. Insert metadata into the database
+    // 2. Insert Record (Force lowercase post_type for database consistency)
     await _supabase.from(kTable).insert({
       'posted_by': userId,
-      'post_type': postType.toLowerCase(),
+      'post_type': postType.toLowerCase(), 
       'title': title,
       'description': description,
       'location': location,
       'contact_info': contactInfo,
       'image_url': imageUrl,
-      'status': 'Active', // Default status for new posts
+      'status': 'Active',
     });
   }
 
-  // Method to fetch posts (for LostFoundPage)
   Stream<List<LostFoundPost>> getPostsStream({String filterType = 'All'}) {
-    var query = _supabase
-        .from(kTable)
-        .stream(primaryKey: ['id'])
-        .order('created_at', ascending: false);
+    return _supabase.from(kTable).stream(primaryKey: ['id']).map((maps) {
+      // Convert all maps to objects safely
+      List<LostFoundPost> allPosts = maps.map((m) => LostFoundPost.fromMap(m)).toList();
+      
+      // Sort: Newest first
+      allPosts.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
-    if (filterType != 'All') {
-      query = query.eq('post_type', filterType.toLowerCase());
-    }
-    query = query.eq('status', 'Active'); // Only show active posts
-
-    return query.map((maps) => maps.map(LostFoundPost.fromMap).toList());
+      // Filter logic
+      if (filterType == 'All') {
+        return allPosts.where((post) => post.status == 'Active').toList();
+      } else {
+        return allPosts.where((post) => 
+          post.postType.toLowerCase() == filterType.toLowerCase() && 
+          post.status == 'Active'
+        ).toList();
+      }
+    });
   }
 
-  // Method to mark a post as resolved (Lost item was Found, etc.)
   Future<void> updatePostStatus(String postId, String newStatus) async {
-    await _supabase
-        .from(kTable)
-        .update({
-          'status': newStatus, // e.g., 'Resolved'
-          'resolved_at': DateTime.now().toIso8601String(),
-        })
-        .eq('id', postId);
+    await _supabase.from(kTable).update({
+      'status': newStatus,
+      'resolved_at': DateTime.now().toIso8601String(),
+    }).eq('id', postId);
   }
 }

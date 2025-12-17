@@ -1,14 +1,13 @@
-// lib/models/lost_found_post.dart
 class LostFoundPost {
   final String id;
   final String postedBy;
-  final String postType; // 'Lost' or 'Found'
+  final String postType;
   final String title;
   final String description;
   final String? location;
   final String? contactInfo;
   final String? imageUrl;
-  final String status; // 'Active', 'Resolved', 'Closed'
+  final String status;
   final DateTime createdAt;
 
   LostFoundPost({
@@ -26,23 +25,26 @@ class LostFoundPost {
 
   factory LostFoundPost.fromMap(Map<String, dynamic> map) {
     return LostFoundPost(
-      id: map['id'] as String,
-      postedBy: map['posted_by'] as String,
-      postType: map['post_type'] as String,
-      title: map['title'] as String,
-      description: map['description'] as String,
-      location: map['location'] as String?,
-      contactInfo: map['contact_info'] as String?,
-      imageUrl: map['image_url'] as String?,
-      status: map['status'] as String,
-      createdAt: DateTime.parse(map['created_at'] as String).toLocal(),
+      // Use .toString() and ?? to prevent casting errors
+      id: map['id']?.toString() ?? '',
+      postedBy: map['posted_by']?.toString() ?? '',
+      postType: map['post_type']?.toString() ?? 'lost',
+      title: map['title']?.toString() ?? 'No Title',
+      description: map['description']?.toString() ?? '',
+      location: map['location']?.toString(),
+      contactInfo: map['contact_info']?.toString(),
+      imageUrl: map['image_url']?.toString(),
+      status: map['status']?.toString() ?? 'Active',
+      createdAt: map['created_at'] != null 
+          ? DateTime.parse(map['created_at']).toLocal() 
+          : DateTime.now(),
     );
   }
 
   Map<String, dynamic> toInsertMap() {
     return {
       'posted_by': postedBy,
-      'post_type': postType,
+      'post_type': postType.toLowerCase(), // Ensure lowercase for DB consistency
       'title': title,
       'description': description,
       'location': location,

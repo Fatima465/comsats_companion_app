@@ -181,6 +181,7 @@
 
 import 'package:cui_companion_app/models/lost_found_post.dart';
 import 'package:cui_companion_app/pages/lost_found_create_post_page.dart';
+import 'package:cui_companion_app/pages/lost_found_detail_page.dart';
 import 'package:cui_companion_app/services/lost_and_found_service.dart'; // Ensure correct import
 import 'package:cui_companion_app/utils/constants.dart';
 import 'package:flutter/material.dart';
@@ -267,7 +268,12 @@ class _LostFoundPageState extends State<LostFoundPage> {
                         title: Text(post.title, style: const TextStyle(fontWeight: FontWeight.bold)),
                         subtitle: Text("${post.postType.toUpperCase()} - ${post.location ?? 'No location'}"),
                         trailing: const Icon(Icons.chevron_right, color: Colors.white54),
-                        onTap: () {
+                        onTap: () {   Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => LostFoundDetailPage(post: post),
+              ),
+            );
                           // TODO: Navigate to detail page
                         },
                       ),

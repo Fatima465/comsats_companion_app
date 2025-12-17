@@ -183,11 +183,82 @@
 //         .map((maps) => maps.map(PastPaper.fromMap).toList()); 
 //   } 
 // }
-
 // lib/services/past_paper_service.dart
+// import 'dart:typed_data';
+// import 'package:cui_companion_app/models/past_paper.dart';
+// import 'package:cui_companion_app/utils/constants.dart';
+// import 'package:supabase_flutter/supabase_flutter.dart';
+// import 'package:path/path.dart' as p;
+// import 'package:crypto/crypto.dart';
+// import 'package:mime/mime.dart'; 
+
+// class PastPaperService {
+//   final _supabase = Supabase.instance.client;
+
+//   // This provides the data for your PastPapersPage
+//   Stream<List<PastPaper>> getPastPapersStream() {
+//     return _supabase
+//         .from(kPastPapersTable)
+//         .stream(primaryKey: ['id'])
+//         .order('created_at', ascending: false)
+//         .map((maps) => maps.map((map) => PastPaper.fromMap(map)).toList());
+//   }
+
+//   Future<void> uploadPastPaper({
+//     required List<int> fileData, 
+//     required String fileName,    
+//     required String userId,
+//     required Map<String, dynamic> metadata,
+//   }) async {
+//     try {
+//       final fileBytes = Uint8List.fromList(fileData);
+//       final fileHash = sha256.convert(fileBytes).toString();
+
+//       // 1. Check if file exists (Duplicate Check)
+//       final existing = await _supabase
+//           .from(kPastPapersTable)
+//           .select('id')
+//           .eq('file_hash', fileHash)
+//           .maybeSingle();
+
+//       if (existing != null) throw 'This paper has already been uploaded.';
+
+//       // 2. Upload Binary to Storage
+//       final storagePath = 'public/$userId/${DateTime.now().millisecondsSinceEpoch}${p.extension(fileName)}';
+//       await _supabase.storage.from(kPastPapersBucket).uploadBinary(
+//         storagePath, 
+//         fileBytes,
+//         fileOptions: FileOptions(contentType: lookupMimeType(fileName) ?? 'application/pdf'),
+//       );
+      
+//       final url = _supabase.storage.from(kPastPapersBucket).getPublicUrl(storagePath);
+      
+//       // 3. Insert into Table
+//       // Ensure these keys match your Supabase column names EXACTLY
+//       await _supabase.from(kPastPapersTable).insert({
+//         'uploaded_by': userId,
+//         'course_code': metadata['course_code'],
+//         'course_name': metadata['course_name'],
+//         'course_instructor': metadata['course_instructor'],
+//         'year': metadata['year'],
+//         'semester': metadata['semester'],
+//         'exam_type': metadata['exam_type'],
+//         'file_url': url,
+//         'file_name': fileName,
+//         'file_size': fileBytes.length,
+//         'download_count': 0,
+//         'file_hash': fileHash,
+//       });
+//     } catch (e) {
+//       // This will catch Storage or Postgrest errors
+//       throw e.toString();
+//     }
+//   }
+// }
+
 import 'dart:typed_data';
 import 'package:cui_companion_app/models/past_paper.dart';
-import 'package:cui_companion_app/utils/constants.dart'; 
+import 'package:cui_companion_app/utils/constants.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:path/path.dart' as p;
 import 'package:crypto/crypto.dart';
@@ -196,77 +267,101 @@ import 'package:mime/mime.dart';
 class PastPaperService {
   final _supabase = Supabase.instance.client;
 
+  /// Listens to the past papers table with optional search filtering
+  Stream<List<PastPaper>> getPastPapersStream({String? searchQuery}) {
+    var query = _supabase.from(kPastPapersTable).stream(primaryKey: ['id']);
+
+    if (searchQuery != null && searchQuery.isNotEmpty) {
+      final search = searchQuery.toLowerCase();
+      return query.map((list) => list
+          .map((map) => PastPaper.fromMap(map))
+          .where((paper) =>
+              paper.courseName.toLowerCase().contains(search) ||
+              paper.courseCode.toLowerCase().contains(search) ||
+              (paper.courseInstructor?.toLowerCase().contains(search) ?? false))
+          .toList());
+    }
+
+    return query
+        .order('created_at', ascending: false)
+        .map((maps) => maps.map((map) => PastPaper.fromMap(map)).toList());
+  }
+
+  /// Uploads file to Storage and creates DB record
   Future<void> uploadPastPaper({
     required List<int> fileData, 
     required String fileName,    
     required String userId,
     required Map<String, dynamic> metadata,
   }) async {
-    final fileBytes = Uint8List.fromList(fileData);
-    
-    // 1. Calculate File Hash for duplicate detection
-    final fileHash = sha256.convert(fileBytes).toString();
+    try {
+      final fileBytes = Uint8List.fromList(fileData);
+      final fileHash = sha256.convert(fileBytes).toString();
 
-    // 2. Check for Duplicates
-    final existingPaper = await _supabase
-        .from(kPastPapersTable)
-        .select('id')
-        .eq('file_hash', fileHash)
-        .maybeSingle();
+      final existing = await _supabase
+          .from(kPastPapersTable)
+          .select('id')
+          .eq('file_hash', fileHash)
+          .maybeSingle();
 
-    if (existingPaper != null) {
-      throw Exception('Duplicate file! This paper has already been uploaded.');
-    }
+      if (existing != null) throw 'This paper has already been uploaded.';
 
-    // 3. Setup Storage Path
-    final fileExtension = p.extension(fileName);
-    final storageFileName = '${DateTime.now().millisecondsSinceEpoch}-$userId$fileExtension';
-    final storagePath = 'public/$userId/$storageFileName';
-    final mimeType = lookupMimeType(fileName) ?? 'application/pdf';
-    
-    // 4. Upload to Supabase Storage
-    await _supabase.storage 
-        .from(kPastPapersBucket)
-        .uploadBinary(
-            storagePath, 
-            fileBytes, 
-            fileOptions: FileOptions(
-                cacheControl: '3600', 
-                upsert: false,
-                contentType: mimeType, 
-            )
-        );
-    
-    // 5. Get the Public URL
-    final fileUrl = _supabase.storage.from(kPastPapersBucket).getPublicUrl(storagePath);
-    
-    // 6. Insert into PostgreSQL
-    final newPaper = PastPaper(
-        id: '', // Generated by DB
-        uploadedBy: userId,
-        courseCode: metadata['course_code'],
-        courseName: metadata['course_name'],
-        year: metadata['year'],
-        semester: metadata['semester'],
-        examType: metadata['exam_type'],
-        fileUrl: fileUrl,
-        fileName: fileName,
-        fileSize: fileBytes.length,
-        downloadCount: 0,
-        createdAt: DateTime.now(),
-    );
-
-    await _supabase.from(kPastPapersTable).insert({
-        ...newPaper.toInsertMap(),
+      final storagePath = 'public/$userId/${DateTime.now().millisecondsSinceEpoch}${p.extension(fileName)}';
+      await _supabase.storage.from(kPastPapersBucket).uploadBinary(
+        storagePath, 
+        fileBytes,
+        fileOptions: FileOptions(contentType: lookupMimeType(fileName) ?? 'application/pdf'),
+      );
+      
+      final url = _supabase.storage.from(kPastPapersBucket).getPublicUrl(storagePath);
+      
+      await _supabase.from(kPastPapersTable).insert({
+        'uploaded_by': userId,
+        'course_code': metadata['course_code'],
+        'course_name': metadata['course_name'],
+        'course_instructor': metadata['course_instructor'],
+        'year': metadata['year'],
+        'semester': metadata['semester'],
+        'exam_type': metadata['exam_type'],
+        'file_url': url,
+        'file_name': fileName,
+        'file_size': fileBytes.length,
+        'download_count': 0,
         'file_hash': fileHash,
-    });
+      });
+    } catch (e) {
+      throw e.toString();
+    }
   }
 
-  Stream<List<PastPaper>> getPastPapersStream() {
-    return _supabase
-        .from(kPastPapersTable)
-        .stream(primaryKey: ['id'])
-        .order('created_at', ascending: false)
-        .map((maps) => maps.map(PastPaper.fromMap).toList()); 
-  } 
+  /// Deletes paper from DB and removes file from Storage
+  Future<void> deletePastPaper(String id, String fileUrl) async {
+    try {
+      // 1. Extract the storage path from the full URL
+      // Logic: Get everything after the bucket name in the URL path
+      final uri = Uri.parse(fileUrl);
+      final pathSegments = uri.pathSegments;
+      final bucketIndex = pathSegments.indexOf(kPastPapersBucket);
+      
+      if (bucketIndex != -1 && bucketIndex + 1 < pathSegments.length) {
+        final storagePath = pathSegments.sublist(bucketIndex + 1).join('/');
+        // Remove from Storage
+        await _supabase.storage.from(kPastPapersBucket).remove([storagePath]);
+      }
+
+      // 2. Delete from Database
+      await _supabase.from(kPastPapersTable).delete().eq('id', id);
+    } catch (e) {
+      throw 'Delete failed: $e';
+    }
+  }
+
+  /// Updates paper metadata
+  Future<void> updatePastPaper(String id, Map<String, dynamic> updates) async {
+    try {
+      await _supabase.from(kPastPapersTable).update(updates).eq('id', id);
+    } catch (e) {
+      throw 'Update failed: $e';
+    }
+  }
 }
