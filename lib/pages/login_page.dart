@@ -88,8 +88,8 @@ class _LoginpageState extends State<Loginpage> {
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
                 decoration: const InputDecoration(
-                  labelText: "University Email",
-                  hintText: "student@cuilahore.edu.pk",
+                  labelText: "Email",
+                  hintText: "student@gmail.com",
                 ),
               ),
               const SizedBox(height: 20),

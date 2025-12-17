@@ -24,11 +24,14 @@ class _RegisterpageState extends State<Registerpage> {
     final confirmPassword = _confirmPasswordController.text.trim();
 
     // 1. Basic Validation
-    if (fullName.isEmpty || email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
+    if (fullName.isEmpty ||
+        email.isEmpty ||
+        password.isEmpty ||
+        confirmPassword.isEmpty) {
       _showErrorSnackBar("All fields must be filled.");
       return;
     }
-    
+
     // 2. Password Match Check
     if (password != confirmPassword) {
       _showErrorSnackBar("Passwords don't match.");
@@ -37,45 +40,51 @@ class _RegisterpageState extends State<Registerpage> {
 
     // 3. Password Strength Check (6 characters with a number)
     if (password.length < 6 || !password.contains(RegExp(r'[0-9]'))) {
-      _showErrorSnackBar("Password must be at least 6 characters and contain a number.");
+      _showErrorSnackBar(
+        "Password must be at least 6 characters and contain a number.",
+      );
       return;
     }
 
     try {
       // Supabase handles the email confirmation logic
       await authService.signUpWithEmailPassword(
-        email, 
+        email,
         password,
         fullName,
         "N/A", // Roll No placeholder
       );
-      
+
       // If sign-up is successful, Supabase has sent a confirmation email.
       if (mounted) {
-         _showSuccessSnackBar("Successfully registered! Please check your email to confirm your account.");
-         // After successful registration/email sent, go back to login page
-         Navigator.pop(context);
+        _showSuccessSnackBar(
+          "Successfully registered! Please check your email to confirm your account.",
+        );
+        // After successful registration/email sent, go back to login page
+        Navigator.pop(context);
       }
-
     } on AuthException catch (e) {
       _showErrorSnackBar("Sign Up Failed: ${e.message}");
     } catch (e) {
       _showErrorSnackBar("An unexpected error occurred: $e");
     }
   }
-  
+
   void _showErrorSnackBar(String message) {
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
     }
   }
-  
+
   void _showSuccessSnackBar(String message) {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message, style: const TextStyle(color: Colors.white)), backgroundColor: Colors.green),
+        SnackBar(
+          content: Text(message, style: const TextStyle(color: Colors.white)),
+          backgroundColor: Colors.green,
+        ),
       );
     }
   }
@@ -93,7 +102,7 @@ class _RegisterpageState extends State<Registerpage> {
             TextField(
               controller: _nameController,
               decoration: const InputDecoration(
-                labelText: "Display Name",
+                labelText: "Name",
                 hintText: "Your Name",
               ),
             ),
@@ -104,20 +113,20 @@ class _RegisterpageState extends State<Registerpage> {
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
               decoration: const InputDecoration(
-                labelText: "University Email",
-                hintText: "student@cuilahore.edu.pk",
+                labelText: "Email",
+                hintText: "student@gmail.com",
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.only(top: 8.0, bottom: 20.0),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  "Use your official university email address",
-                  style: TextStyle(color: Colors.white54, fontSize: 12),
-                ),
-              ),
-            ),
+            // const Padding(
+            //   padding: EdgeInsets.only(top: 8.0, bottom: 20.0),
+            //   child: Align(
+            //     alignment: Alignment.centerLeft,
+            //     child: Text(
+            //       "Use your official university email address",
+            //       style: TextStyle(color: Colors.white54, fontSize: 12),
+            //     ),
+            //   ),
+            // ),
 
             // Password
             TextField(
@@ -146,7 +155,10 @@ class _RegisterpageState extends State<Registerpage> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: signUp,
-                child: const Text("Create Account", style: TextStyle(fontSize: 18)),
+                child: const Text(
+                  "Create Account",
+                  style: TextStyle(fontSize: 18),
+                ),
               ),
             ),
             const SizedBox(height: 50),
@@ -169,7 +181,7 @@ class _RegisterpageState extends State<Registerpage> {
                   ],
                 ),
               ),
-            )
+            ),
           ],
         ),
       ),
