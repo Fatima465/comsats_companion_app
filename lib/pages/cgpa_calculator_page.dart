@@ -42,7 +42,6 @@ class _CGPACalculatorPageState extends State<CGPACalculatorPage> {
   String _selectedGrade = 'A';
 
   double _semesterGpa = 0.00;
-  double _cumulativeGpa = 0.00; // Will require all past semester data
 
   void _addCourse() {
     if (_courseNameController.text.isEmpty) {
@@ -88,7 +87,6 @@ class _CGPACalculatorPageState extends State<CGPACalculatorPage> {
       // implementation needs a full `Semester` and `Course` data structure
       // that is fetched/stored locally or via Supabase.
       // For a placeholder, we'll assume CGPA is the same as SGPA for the current calculation.
-      _cumulativeGpa = _semesterGpa; 
     });
   }
 
@@ -206,7 +204,7 @@ class _CGPACalculatorPageState extends State<CGPACalculatorPage> {
               children: [
                 Column(
                   children: [
-                    const Text("Semester GPA", style: TextStyle(color: Colors.white70)),
+                    const Text("Semester SGPA", style: TextStyle(color: Colors.white70)),
                     Text(
                       _semesterGpa.toStringAsFixed(2),
                       style: const TextStyle(
@@ -217,19 +215,19 @@ class _CGPACalculatorPageState extends State<CGPACalculatorPage> {
                     ),
                   ],
                 ),
-                Column(
-                  children: [
-                    const Text("Cumulative GPA", style: TextStyle(color: Colors.white70)),
-                    Text(
-                      _cumulativeGpa.toStringAsFixed(2),
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.greenAccent,
-                      ),
-                    ),
-                  ],
-                ),
+                // Column(
+                //   children: [
+                //     const Text("Cumulative GPA", style: TextStyle(color: Colors.white70)),
+                //     Text(
+                //       _cumulativeGpa.toStringAsFixed(2),
+                //       style: const TextStyle(
+                //         fontSize: 24,
+                //         fontWeight: FontWeight.bold,
+                //         color: Colors.greenAccent,
+                //       ),
+                //     ),
+                //   ],
+                // ),
               ],
             ),
           ),

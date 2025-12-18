@@ -179,13 +179,13 @@ class _PastPapersPageState extends State<PastPapersPage> {
       try {
         // Extracts the path from the URL for storage deletion if needed
         // Assuming your service handles both DB and Storage deletion
-       print("Attempting to delete ID: ${paper.id}"); // Debug Log
-    await _service.deletePastPaper(paper.id, paper.fileUrl);
-    print("Delete successful");
+        print("Attempting to delete ID: ${paper.id}"); // Debug Log
+        await _service.deletePastPaper(paper.id, paper.fileUrl);
+        print("Delete successful");
       } catch (e) {
         if (mounted) {
-     print("DELETE ERROR: $e"); // This will tell us if it's an RLS issue
-    // ... rest of your code
+          print("DELETE ERROR: $e"); // This will tell us if it's an RLS issue
+          // ... rest of your code
         }
       }
     }
@@ -209,6 +209,7 @@ class _PastPapersPageState extends State<PastPapersPage> {
               controller: nameController,
               decoration: const InputDecoration(labelText: "Course Name"),
             ),
+            const SizedBox(height: 10),
             TextField(
               controller: instructorController,
               decoration: const InputDecoration(labelText: "Instructor"),

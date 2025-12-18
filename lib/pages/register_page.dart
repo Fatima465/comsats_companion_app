@@ -129,6 +129,8 @@ class _RegisterpageState extends State<Registerpage> {
             // ),
 
             // Password
+            const SizedBox(height: 20),
+
             TextField(
               controller: _passwordController,
               decoration: const InputDecoration(

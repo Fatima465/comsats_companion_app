@@ -5,7 +5,10 @@ class AuthService {
   final SupabaseClient _supabase = Supabase.instance.client;
 
   // 1. SIGN IN (Login) - FR2, FR3
-  Future<AuthResponse> signInWithEmailPassword(String email, String password) async {
+  Future<AuthResponse> signInWithEmailPassword(
+    String email,
+    String password,
+  ) async {
     return await _supabase.auth.signInWithPassword(
       email: email.trim(),
       password: password.trim(),
@@ -14,16 +17,16 @@ class AuthService {
 
   // 2. SIGN UP (Register) - FR1, Email Confirmation
   Future<void> signUpWithEmailPassword(
-    String email, 
+    String email,
     String password,
     String fullName, // New parameter for profile creation
-    String rollNo,    // New parameter for profile creation
+    String rollNo, // New parameter for profile creation
   ) async {
     final response = await _supabase.auth.signUp(
       email: email.trim(),
       password: password.trim(),
       // Supabase sends a confirmation email by default
-      emailRedirectTo: 'io.supabase.flutter://login-callback/', 
+      emailRedirectTo: 'io.supabase.flutter://login-callback/',
     );
 
     // After successful sign-up, create the initial profile entry.
@@ -55,12 +58,18 @@ class AuthService {
   }
 
   // 6. CHECK FOR EXISTING PROFILE and CREATE IF NOT EXISTS (Crucial for sign-up flow)
-  Future<void> ensureProfileExists(String userId, String email, String fullName, String rollNo) async {
-    final response = await _supabase.from('profiles')
-      .select('id')
-      .eq('id', userId)
-      .limit(1)
-      .maybeSingle();
+  Future<void> ensureProfileExists(
+    String userId,
+    String email,
+    String fullName,
+    String rollNo,
+  ) async {
+    final response = await _supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', userId)
+        .limit(1)
+        .maybeSingle();
 
     if (response == null) {
       // Profile does not exist, create it.
